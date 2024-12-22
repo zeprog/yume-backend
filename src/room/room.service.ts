@@ -43,4 +43,8 @@ export class RoomService {
       throw new Error('Room not found');
     }
   }
+
+  roomExists(roomId: string): boolean {
+    return this.rooms.has(roomId);
+  }
 }

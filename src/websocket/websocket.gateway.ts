@@ -18,8 +18,7 @@ import { WebsocketService } from './websocket.service';
   },
 })
 export class WebsocketGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
   private readonly logger = new Logger(WebsocketGateway.name);
@@ -27,7 +26,7 @@ export class WebsocketGateway
   constructor(
     private readonly roomService: RoomService,
     private readonly websocketService: WebsocketService,
-  ) {}
+  ) { }
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
@@ -48,18 +47,40 @@ export class WebsocketGateway
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
+  @SubscribeMessage('createRoom')
+  handleCreateRoom(client: Socket, data: { roomId: string }) {
+    const { roomId } = data;
+
+    if (!roomId || typeof roomId !== 'string') {
+      client.emit('error', { message: 'Invalid room ID' });
+      this.logger.warn(`Client ${client.id} provided invalid room ID`);
+      return;
+    }
+
+    if (this.roomService.roomExists(roomId)) {
+      client.emit('error', { message: 'Room already exists' });
+      this.logger.warn(`Client ${client.id} tried to create an existing room ${roomId}`);
+      return;
+    }
+
+    this.roomService.createRoom(roomId);
+    client.emit('room-created', { roomId });
+    this.logger.log(`Room ${roomId} created by client ${client.id}`);
+  }
+
   @SubscribeMessage('joinRoom')
   handleJoinRoom(client: Socket, data: { roomId: string }) {
     const { roomId } = data;
 
-    if (client.data.roomId === roomId) {
-      this.logger.log(`Client ${client.id} is already in room ${roomId}`);
+    if (!this.roomService.roomExists(roomId)) {
+      client.emit('error', { message: 'Room does not exist' });
+      this.logger.warn(`Client ${client.id} tried to join non-existent room ${roomId}`);
       return;
     }
 
-    if (!this.roomService.getRoomClients(roomId).length) {
-      this.roomService.createRoom(roomId);
-      this.logger.log(`Room ${roomId} created.`);
+    if (client.data.roomId === roomId) {
+      this.logger.log(`Client ${client.id} is already in room ${roomId}`);
+      return;
     }
 
     if (client.data.roomId) {
