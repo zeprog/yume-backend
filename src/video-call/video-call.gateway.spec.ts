@@ -60,7 +60,10 @@ describe('VideoCallGateway', () => {
 
   describe('handleCandidate', () => {
     it('should broadcast candidate to the room', () => {
-      const data = { roomId: 'room1', candidate: { candidate: 'test-candidate' } };
+      const data = {
+        roomId: 'room1',
+        candidate: { candidate: 'test-candidate' },
+      };
       gateway.handleCandidate(data);
 
       expect(websocketService.broadcastToRoom).toHaveBeenCalledWith(

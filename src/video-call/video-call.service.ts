@@ -18,7 +18,12 @@ export class VideoCallService {
     if (!this.routers.has(roomId)) {
       const router = await this.worker.createRouter({
         mediaCodecs: [
-          { kind: 'audio', mimeType: 'audio/opus', clockRate: 48000, channels: 2 },
+          {
+            kind: 'audio',
+            mimeType: 'audio/opus',
+            clockRate: 48000,
+            channels: 2,
+          },
           { kind: 'video', mimeType: 'video/vp8', clockRate: 90000 },
         ],
       });

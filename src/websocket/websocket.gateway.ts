@@ -17,7 +17,9 @@ import { WebsocketService } from './websocket.service';
     credentials: true,
   },
 })
-export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class WebsocketGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer() server: Server;
 
   private readonly logger = new Logger(WebsocketGateway.name);
@@ -30,7 +32,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
     client.data = {};
-    
+
     this.websocketService.setServer(this.server);
   }
 
@@ -44,12 +46,12 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       this.server.to(roomId).emit('participants-updated', { participants });
     }
     this.logger.log(`Client disconnected: ${client.id}`);
-}
+  }
 
   @SubscribeMessage('joinRoom')
   handleJoinRoom(client: Socket, data: { roomId: string }) {
     const { roomId } = data;
-    
+
     if (client.data.roomId === roomId) {
       this.logger.log(`Client ${client.id} is already in room ${roomId}`);
       return;

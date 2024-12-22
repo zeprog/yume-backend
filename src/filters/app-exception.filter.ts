@@ -24,7 +24,10 @@ export class AppExceptionFilter implements ExceptionFilter {
       const exceptionResponse = exception.getResponse(); // Данные исключения
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse; // Простое сообщение
-      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      } else if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null
+      ) {
         message = (exceptionResponse as any).message || message; // Сообщение из объекта
       }
     }

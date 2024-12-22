@@ -7,7 +7,6 @@ jest.mock('mediasoup');
 describe('VideoCallService', () => {
   let service: VideoCallService;
   let mockWorker: jest.Mocked<mediasoup.types.Worker>;
-  let mockRouter: jest.Mocked<mediasoup.types.Router>;
 
   beforeEach(async () => {
     mockWorker = {
@@ -48,7 +47,12 @@ describe('VideoCallService', () => {
 
       expect(mockWorker.createRouter).toHaveBeenCalledWith({
         mediaCodecs: [
-          { kind: 'audio', mimeType: 'audio/opus', clockRate: 48000, channels: 2 },
+          {
+            kind: 'audio',
+            mimeType: 'audio/opus',
+            clockRate: 48000,
+            channels: 2,
+          },
           { kind: 'video', mimeType: 'video/vp8', clockRate: 90000 },
         ],
       });
