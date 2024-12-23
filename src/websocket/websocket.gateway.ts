@@ -18,7 +18,8 @@ import { WebsocketService } from './websocket.service';
   },
 })
 export class WebsocketGateway
-  implements OnGatewayConnection, OnGatewayDisconnect {
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer() server: Server;
 
   private readonly logger = new Logger(WebsocketGateway.name);
@@ -26,24 +27,42 @@ export class WebsocketGateway
   constructor(
     private readonly roomService: RoomService,
     private readonly websocketService: WebsocketService,
-  ) { }
+  ) {}
+
+  private generateRandomNickname(): string {
+    const adjectives = ['Bright', 'Clever', 'Brave', 'Calm', 'Quick', 'Happy'];
+    const animals = ['Tiger', 'Fox', 'Bear', 'Eagle', 'Shark', 'Wolf'];
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const animal = animals[Math.floor(Math.random() * animals.length)];
+    return `${adjective} ${animal}`;
+  }
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
-    client.data = {};
+    const nickname = this.generateRandomNickname();
+    client.data.nickname = nickname;
 
-    this.websocketService.setServer(this.server);
+    client.emit('nickname-assigned', { nickname });
+    this.logger.log(`Nickname "${nickname}" assigned to client ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
     const roomId = client.data.roomId;
+
     if (roomId) {
+      const nickname = client.data.nickname || 'Anonymous';
       this.roomService.removeClientFromRoom(roomId, client.id);
       client.leave(roomId);
 
       const participants = this.roomService.getRoomClients(roomId);
       this.server.to(roomId).emit('participants-updated', { participants });
+
+      this.server.to(roomId).emit('receiveMessage', {
+        type: 'notification',
+        message: `${nickname} вышел из комнаты.`,
+      });
     }
+
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
@@ -59,7 +78,9 @@ export class WebsocketGateway
 
     if (this.roomService.roomExists(roomId)) {
       client.emit('error', { message: 'Room already exists' });
-      this.logger.warn(`Client ${client.id} tried to create an existing room ${roomId}`);
+      this.logger.warn(
+        `Client ${client.id} tried to create an existing room ${roomId}`,
+      );
       return;
     }
 
@@ -74,12 +95,6 @@ export class WebsocketGateway
 
     if (!this.roomService.roomExists(roomId)) {
       client.emit('error', { message: 'Room does not exist' });
-      this.logger.warn(`Client ${client.id} tried to join non-existent room ${roomId}`);
-      return;
-    }
-
-    if (client.data.roomId === roomId) {
-      this.logger.log(`Client ${client.id} is already in room ${roomId}`);
       return;
     }
 
@@ -88,13 +103,18 @@ export class WebsocketGateway
     }
 
     client.data.roomId = roomId;
+    const nickname = client.data.nickname || 'Anonymous';
+
     this.roomService.addClientToRoom(roomId, client.id);
     client.join(roomId);
 
     const participants = this.roomService.getRoomClients(roomId);
     this.server.to(roomId).emit('participants-updated', { participants });
 
-    this.logger.log(`Client ${client.id} joined room ${roomId}`);
+    this.server.to(roomId).emit('receiveMessage', {
+      type: 'notification',
+      message: `${nickname} вошел в комнату.`,
+    });
   }
 
   @SubscribeMessage('leaveRoom')
@@ -114,5 +134,27 @@ export class WebsocketGateway
     this.server.to(roomId).emit('participants-updated', { participants });
 
     this.logger.log(`Client ${client.id} left room ${roomId}`);
+  }
+
+  @SubscribeMessage('sendMessage')
+  handleSendMessage(client: Socket, data: { roomId: string; message: string }) {
+    const { roomId, message } = data;
+
+    if (!this.roomService.roomExists(roomId)) {
+      client.emit('error', { message: 'Room does not exist' });
+      this.logger.warn(
+        `Client ${client.id} tried to send a message to non-existent room ${roomId}`,
+      );
+      return;
+    }
+
+    this.server.to(roomId).emit('receiveMessage', {
+      sender: client.data.nickname || 'Anonymous',
+      message,
+    });
+
+    this.logger.log(
+      `Client ${client.data.nickname || client.id} sent message to room ${roomId}: ${message}`,
+    );
   }
 }
