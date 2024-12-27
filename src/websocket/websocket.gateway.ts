@@ -157,4 +157,29 @@ export class WebsocketGateway
       `Client ${client.data.nickname || client.id} sent message to room ${roomId}: ${message}`,
     );
   }
+
+  @SubscribeMessage('updateNickname')
+  handleUpdateNickname(
+    client: Socket,
+    data: { roomId: string; nickname: string },
+  ) {
+    const { roomId, nickname } = data;
+
+    if (!this.roomService.roomExists(roomId)) {
+      client.emit('error', { message: 'Room does not exist' });
+      return;
+    }
+
+    const oldNickname = client.data.nickname || 'Anonymous';
+    client.data.nickname = nickname;
+
+    // Подтверждение клиенту
+    client.emit('nickname-updated', { nickname });
+
+    // Системное сообщение в комнату
+    this.server.to(roomId).emit('receiveMessage', {
+      type: 'notification',
+      content: `${oldNickname} сменил ник на ${nickname}.`,
+    });
+  }
 }
