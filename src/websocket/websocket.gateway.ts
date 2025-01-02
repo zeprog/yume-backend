@@ -175,9 +175,13 @@ export class WebsocketGateway
 
     client.emit('nickname-updated', { nickname });
 
+    const participants = this.roomService.getRoomClients(roomId);
+
     this.server.to(roomId).emit('receiveMessage', {
       type: 'notification',
-      content: `${oldNickname} сменил ник на ${nickname}.`,
+      message: `${oldNickname} сменил ник на ${nickname}.`,
     });
+
+    this.server.to(roomId).emit('participants-updated', { participants });
   }
 }
