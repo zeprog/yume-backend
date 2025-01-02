@@ -25,7 +25,7 @@ export class RoomService {
     if (room) {
       room.delete(clientId);
       if (room.size === 0) {
-        this.rooms.delete(roomId); // Удаляем комнату, если она пуста
+        this.rooms.delete(roomId);
       }
     } else {
       throw new Error('Room not found');

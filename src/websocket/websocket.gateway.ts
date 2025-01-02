@@ -173,10 +173,8 @@ export class WebsocketGateway
     const oldNickname = client.data.nickname || 'Anonymous';
     client.data.nickname = nickname;
 
-    // Подтверждение клиенту
     client.emit('nickname-updated', { nickname });
 
-    // Системное сообщение в комнату
     this.server.to(roomId).emit('receiveMessage', {
       type: 'notification',
       content: `${oldNickname} сменил ник на ${nickname}.`,
